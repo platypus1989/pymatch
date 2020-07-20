@@ -110,3 +110,27 @@ def is_continuous(colname, dmatrix):
     Would look like colname[<factor_value>] otherwise
     """
     return (colname in dmatrix.columns) or ("Q('{}')".format(colname) in dmatrix.columns)
+
+def closest_index(a, b):
+    n0 = a.shape[0]
+    n1 = b.shape[0]
+    a = a.scores.sort_values()
+    b = b.scores.sort_values()
+    results = []
+    index1 = 0
+    if a.iloc[0] >= b.iloc[0]:
+        results.extend([b.index[0], a.index[0]])
+        index1 += 1
+    index0 = 1
+
+    while (index1 < n1) and (index0 < n0):
+        while (index0 + 1 < n0) and (a.iloc[index0 + 1] < b.iloc[index1]):
+            index0 += 1
+        if (index0+1 < n0) and (a.iloc[index0+1] - b.iloc[index1] <= b.iloc[index1] - a.iloc[index0]): index0 += 1
+        results.extend([b.index[index1], a.index[index0]])
+        index1 += 1
+
+    if index1 < n1:
+        results = results + [a.index[-1]*(n1-index1)]
+    match_ids = np.repeat(b.index, 2)
+    return results, match_ids

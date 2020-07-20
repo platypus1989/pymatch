@@ -181,24 +181,28 @@ class Matcher:
         test_scores = self.data[self.data[self.yvar]==True][['scores']]
         ctrl_scores = self.data[self.data[self.yvar]==False][['scores']]
         result, match_ids = [], []
-        for i in range(len(test_scores)):
-            # uf.progress(i+1, len(test_scores), 'Matching Control to Test...')
-            match_id = i
-            score = test_scores.iloc[i]
-            if method == 'random':
-                bool_match = abs(ctrl_scores - score) <= threshold
-                matches = ctrl_scores.loc[bool_match[bool_match.scores].index]
-            elif method == 'min':
-                matches = abs(ctrl_scores - score).sort_values('scores').head(nmatches)
-            else:
-                raise(AssertionError, "Invalid method parameter, use ('random', 'min')")
-            if len(matches) == 0:
-                continue
-            # randomly choose nmatches indices, if len(matches) > nmatches
-            select = nmatches if method != 'random' else np.random.choice(range(1, max_rand+1), 1)
-            chosen = np.random.choice(matches.index, min(select, nmatches), replace=False)
-            result.extend([test_scores.index[i]] + list(chosen))
-            match_ids.extend([i] * (len(chosen)+1))
+        if method == 'fast':
+            result, match_ids = uf.closest_index(ctrl_scores, test_scores)
+        else:
+            for i in range(len(test_scores)):
+                # uf.progress(i+1, len(test_scores), 'Matching Control to Test...')
+                match_id = i
+                score = test_scores.iloc[i]
+                if method == 'random':
+                    bool_match = abs(ctrl_scores - score) <= threshold
+                    matches = ctrl_scores.loc[bool_match[bool_match.scores].index]
+                elif method == 'min':
+                    matches = abs(ctrl_scores - score).sort_values('scores').head(nmatches)
+                else:
+                    raise(AssertionError, "Invalid method parameter, use ('random', 'min')")
+                if len(matches) == 0:
+                    continue
+                # randomly choose nmatches indices, if len(matches) > nmatches
+                select = nmatches if method != 'random' else np.random.choice(range(1, max_rand+1), 1)
+                chosen = np.random.choice(matches.index, min(select, nmatches), replace=False)
+                result.extend([test_scores.index[i]] + list(chosen))
+                match_ids.extend([i] * (len(chosen)+1))
+
         self.matched_data = self.data.loc[result]
         self.matched_data['match_id'] = match_ids
         self.matched_data['record_id'] = self.matched_data.index
